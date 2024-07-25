@@ -1,34 +1,32 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from scipy.ndimage import zoom
+
+def downsampleY(y):
+    reshapeY = y.reshape((y.shape[0] // 2, 2, y.shape[1] // 2, 2))
+    resizeY = reshapeY.mean(axis = (1,3)).round()
+    return resizeY.astype('uint8')
+
+def readYUV(yuv_path, width=3840, height=2160, pixel_stride=2):
+    with open(yuv_path,"rb") as file:
+        yuv422_data = file.read()
+    y_size = width * height
+    u_size = width * height // 2 - 1
+    u_size = width * height // 2 - 1
+    y = np.frombuffer(yuv422_data[:y_size],dtype=np.uint8).reshape((height, width))
+    u = np.frombuffer(yuv422_data[y_size:y_size+u_size:2],dtype=np.uint8).reshape((height//2, width//2))
+    v = np.frombuffer(yuv422_data[y_size+u_size::2],dtype=np.uint8).reshape((height//2, width//2))
+    return y, u, v
 
 
-def yuv422_to_rgb(yuv422_data, width, height):
-    frame_size = width * height * 2
-    if len(yuv422_data) != frame_size:
-        raise ValueError("The size of the YUV422 data does not match the expected frame size")
-    yuv = np.frombuffer(yuv422_data,dtype=np.uint8).reshape((height,width*2))
-    rgb = np.zeros((height, width, 3),dtype= np.uint8)
-    y = yuv[:, 0::2]
-    u = yuv[:, 1::4].repeat(2, axis=1)
-    v = yuv[:, 1::4].repeat(2, axis=1)
-
-    yuv = np.stack((y, u, v), axis= -1)
-    rgb = cv2.cvtColor(yuv, cv2.COLOR_YUV2RGB)
-
-    return rgb ,yuv
-
-
-width = 3840
-height = 2160
 file_path = r'C:\Users\user\Downloads\capture1016-12815\capture1016-12815.bin'
-with open(file_path,"rb") as file:
-    yuv422_data = file.read()
-yuv422_data = yuv422_data + b'00'
-(rgb_image, yuv_image) = yuv422_to_rgb(yuv422_data, width, height)
-plt.imshow(rgb_image)
-plt.axis('off')
+y, u, v = readYUV(file_path)
+y_d = downsampleY(y)
+yuv = np.stack((y_d,u,v),-1)
+rgb = cv2.cvtColor(yuv, cv2.COLOR_YUV2RGB)
+
+plt.figure()
+plt.imshow(rgb)
 plt.show()
-plt.imshow(yuv_image)
-plt.axis('off')
-plt.show()
+
