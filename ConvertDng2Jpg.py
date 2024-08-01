@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import inspect
 import exifread
+import exiftool
 
 XYZ_to_sRGB = np.array([
     [3.2406, -1.5372, -0.4986],
@@ -59,6 +60,9 @@ def print_raw_data(raw):
 
 
 dng_file = '20240709_163330.dng'
+with exiftool.ExifTool() as et:
+    metadata = et.get_metadata(dng_file)
+
 with open(dng_file, 'rb') as f:
     tags = exifread.process_file(f)
 
